@@ -1,0 +1,55 @@
+{{- if .Values.ingress -}}
+{{- if .Values.ingress.enabled -}}
+{{- $servicePort := .Values.ingress.servicePort -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ template "application.name" . }}
+  labels:
+{{ include "application.labels" . | indent 4 }}
+{{ include "application.labels.chart" . | indent 4 }}
+{{- if .Values.ingress.additionalLabels }}
+{{ toYaml .Values.ingress.additionalLabels | indent 4 }}
+{{- end }}
+{{- if .Values.ingress.annotations }}
+  annotations:
+{{ toYaml .Values.ingress.annotations | indent 4 }}
+{{- end }}
+    alb.ingress.kubernetes.io/tags: Environment={{- .Values.environment }}
+    alb.ingress.kubernetes.io/load-balancer-name: {{ .Values.ingress.loadbalancername }}-{{ .Values.environment }}
+    alb.ingress.kubernetes.io/group.name: {{ .Values.ingress.groupname }}-{{ .Values.environment }}
+    alb.ingress.kubernetes.io/subnets: {{ .Values.ingress.awssubnets }}
+    {{- if .Values.ingress.wafarn }}
+    alb.ingress.kubernetes.io/wafv2-acl-arn: {{ .Values.ingress.wafarn }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  rules:
+    {{- $serviceName := include "application.name" $ -}}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: redirect-to-www
+                port:
+                  name: use-annotation
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ $serviceName }}
+                port:
+                  number: {{ $servicePort }}
+
+          {{- end }}
+    {{ end -}}
+
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,9 @@
+/.idea/
+__pycache__
+*.terragrunt-cache*
+.terraformrc
+terraform.rc
+*.tfstate
+*.tfstate.*
+**/.terraform/*
+/.idea

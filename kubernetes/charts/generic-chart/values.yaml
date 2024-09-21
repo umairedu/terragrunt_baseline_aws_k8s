@@ -1,0 +1,412 @@
+# Name of the application.
+applicationName: "project-name-generic-helm"
+   
+# These labels will be added on all resources, and you can add additional labels from below on individual resource
+labels:
+  group: project-name-generic-helm
+deployment:
+
+  # By default deploymentStrategy is set to rollingUpdate
+  # You can change type to `Recreate` or can uncomment `rollingUpdate` specification and adjust them to your usage.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  
+  # Select nodes to deploy which matches the following labels  
+  nodeSelector:
+    # cloud.google.com/gke-nodepool: default-pool  
+
+  # If needed to setup host aliases
+  hostAliases: 
+  # - ip: "127.0.0.1"
+  #   hostnames:
+  #   - "foo.local"
+  #   - "bar.local"
+
+  # Init containers which runs before the app container
+  initContainers:
+  # - name: init-contaner
+  #   image: busybox
+  #   imagePullPolicy: IfNotPresent
+  #   command: ['/bin/sh']    
+
+  # Additional labels for Deployment
+  additionalLabels:
+    # key: value
+  
+  # Additional label added on pod which is used in Service's Label Selector
+  podLabels: 
+    # env: prod
+
+  # Annotations on deployments
+  annotations:
+
+  # Additional Pod Annotations added on pod created by this Deployment
+  additionalPodAnnotations:
+    # key: value
+
+  # Replicas to be created
+  replicas: 1
+
+  # Revision History Limit for Replica Sets
+  revisionHistoryLimit: 4
+
+  # Secrets used to pull image
+  imagePullSecrets: "docker"
+
+  # If want to mount Envs from configmap or secret
+  envFrom: []
+  # - type: configmap
+  #   name: my-configmap
+  # - type: secret
+  #   name: my-secret
+
+  # Environment variables to be passed to the app container
+  env:
+  # - name: ENVIRONMENT
+  #   value: "dev"
+  
+  # Volumes to be added to the pod
+  volumes:
+    # - name: config-volume
+    #   configMap:        
+    #     name: configmap-name
+    # - name: configmap-volume
+    #   configMap:
+    #     name: '{{ template "application.name" . }}-configmap-nameSuffix'
+    # - name: secret-volume
+    #   secret:        
+    #     secretName: secret-name
+    # - name: volume-name
+    #   emptyDir: {}
+    # - name: persistent-volume-name
+    #   persistentVolumeClaim:
+    #     claimName: claim-name
+
+  # Mount path for Volumes 
+  volumeMounts:
+    # - mountPath: /path
+    #   name: volume-name
+
+  # Taint tolerations for nodes
+  tolerations:
+    # - key: "dedicated"
+    #   operator: "Equal"
+    #   value: "app"
+    #   effect: "NoSchedule"
+
+  # Pod affinity and pod anti-affinity allow you to specify rules about how pods should be placed relative to other pods.
+  affinity:
+  #  nodeAffinity:
+  #    requiredDuringSchedulingIgnoredDuringExecution:
+  #      nodeSelectorTerms:
+  #      - matchExpressions:
+  #        - key: disktype
+  #          operator: In
+  #          values:
+  #          - ssd
+
+  # Image of the app container
+  image: 
+    repository: repository/image-name
+    tag: v1.0.0
+    pullPolicy: IfNotPresent
+
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop:
+        - all
+
+  # Readiness and Liveness probes
+  readinessProbe:
+    failureThreshold: 3
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+    initialDelaySeconds: 10
+    httpGet:
+      path: /actuator/health/readiness
+      port: 8080
+  livenessProbe:
+    failureThreshold: 3
+    periodSeconds: 10
+    successThreshold: 1
+    timeoutSeconds: 1
+    initialDelaySeconds: 30
+    httpGet:
+      path: /actuator/health/liveness
+      port: 8080
+
+  # Resources to be defined for pod
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      memory: 128Mi
+      cpu: 0.2
+
+  # Add additional containers besides init and app containers
+  additionalContainers:
+  # - name: sidecar-contaner
+  #   image: busybox
+  #   imagePullPolicy: IfNotPresent
+  #   command: ['/bin/sh']    
+
+  # Security Context for the pod
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 1001
+    runAsGroup: 3000
+    fsGroup: 2000
+    
+
+# Add Storage volumes to the pods
+persistence:
+  enabled: false
+  mountPVC: false
+  mountPath: "/"
+  accessMode: ReadWriteOnce
+  ## If defined, storageClass: <storageClass>
+  ## If set to "-", storageClass: "", which disables dynamic provisioning
+  ## If undefined (the default) or set to null, no storageClass spec is
+  ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  ##   GKE, AWS & OpenStack)
+  ##
+  storageClass: ""
+  additionalLabels:
+    # key: "value"
+  annotations:
+  #  "helm.sh/resource-policy": keep
+  storageSize: 8Gi
+
+# Service object for servicing pods
+service:
+  additionalLabels:
+    # expose: "true"
+
+  annotations:
+  applicationPort: 8080
+  ports:
+    - port: 8080
+      name: http
+      protocol: TCP
+      targetPort: 8080
+
+# Ingress object for exposing services
+ingress:
+  enabled: false
+  
+  # Port of the service that serves pods
+  servicePort: http
+  
+  # List of host addresses to be exposed by this Ingress
+  hosts:
+    - chart-example.local
+  
+  # Add annotations to this Ingress
+  annotations:
+    # kubernetes.io/ingress.class: external-ingress
+    # ingress.kubernetes.io/rewrite-target: /
+    # ingress.kubernetes.io/force-ssl-redirect: true
+
+  # TLS details for this Ingress
+  tls:
+    # Secrets must be manually created in the namespace.
+    # - secretName: chart-example-tls
+    #   hosts:
+    #     - chart-example.local
+
+# Role Based Access Control
+rbac:
+  enabled: true
+
+  # Service Account to use by pods
+  serviceAccount:
+    enabled: true
+    name: ""
+
+    # Additional Labels on service account
+    additionalLabels:
+      # key: value
+    
+    # Annotations on service account 
+    annotations:
+      # key: value
+
+  existingRoles: 
+  # - name: springboot
+
+  # Create Roles (Namespaced)
+  roles:
+  # - name: configmaps
+  #   rules:
+  #   - apiGroups:
+  #     - ""
+  #     resources:
+  #     - configmaps
+  #     verbs:
+  #     - get
+  # - name: secrets
+  #   rules:
+  #   - apiGroups:
+  #     - ""
+  #     resources:
+  #     - secrets
+  #     verbs:
+  #     - get
+
+  existingClusterroles: 
+  # - name: springboot
+  # Create ClusterRoles (Clusterwide)
+  clusterroles:
+  # - name: configmaps
+  #   rules:
+  #   - apiGroups:
+  #     - ""
+  #     resources:
+  #     - configmaps
+  #     verbs:
+  #     - get
+  # - name: pods
+  #   rules:
+  #   - apiGroups:
+  #     - ""
+  #     resources:
+  #     - pods
+  #     verbs:
+  #     - get
+  #     - list
+  #     - watch
+
+
+# Additional ConfigMaps  
+configMap:
+  enabled: false
+  additionalLabels: 
+    # key: value
+  annotations: 
+    # key: value
+  files:
+  # - nameSuffix: code-config    
+  #   data:
+  #     key1: value1
+  #     key2: value2
+  # - nameSuffix: dev-config
+  #   data:
+  #     key1: value1
+  #     key2: value2
+
+# Additional Secrets
+secret:
+  enabled: false
+  additionalLabels: 
+    # key: value
+  annotations: 
+    # key: value
+  files:    
+  # - nameSuffix: credentials
+  #   data:
+  #     secretKey1: secretValue1
+  #     secretKey2: secretValue2
+  # - nameSuffix: password
+  #   data:
+  #     secretKey1: secretValue1
+  #     secretKey2: secretValue2
+
+# Service Monitor to collect Prometheus metrices
+serviceMonitor:
+  enabled: false
+  
+  # Additional labels
+  additionalLabels:
+    # key: value
+
+  # Additional annotations
+  annotations:
+    # key: value
+
+  # List of the endpoints of service from which prometheus will scrape data
+  endpoints:
+  - interval: 10s
+    path: /actuator/prometheus
+    port: http
+
+logging:
+  enabled: false
+  flows:
+  - name: "flow-name"
+    globalOutputRefs:
+    - es-app-output
+    filters:
+    - grep:
+        regexp:
+          - key: log
+            pattern: /^\d{4}-\d{2}-\d{2}(.*)$/
+    - tag_normaliser: {}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: regexp
+          expression: >-
+            /^(?<logTime>[^\s]*)\s\[(?<traceId>[^]]*)\]\s\[(?<spanId>[^]]*)\]\s(?<logLevel>[^\s]*)\s+\[(?<threadId>[^]]*)\]\s(?<className>[^:]*):\s(?<logMessage>(.*))$/
+  - name: "flow-name2"
+    globalOutputRefs:
+    - es-event-app-output
+    filters:
+    - grep:
+        regexp:
+          - key: log
+            pattern: /^{(.*)$/
+    - tag_normaliser: {}
+    - parser:
+        remove_key_name_field: true
+        reserve_data: true
+        parse:
+          type: json
+
+# autoscaling is used for horizonal pod autoscaling
+autoscaling:
+# enabled is a boolean flag for enabling or disabling autoscaling 
+  enabled: false
+# additionalLabels defines additional labels
+  additionalLabels: 
+    # key: value
+# annotations defines annotations in key value pair
+  annotations: 
+    # key: value
+# minReplicas sets the minimum number of replicas
+  minReplicas: 1
+# maxReplicas sets the maximum number of replicas
+  maxReplicas: 10
+# metrics is the list of metrics used for hpa
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      targetAverageUtilization: 60
+  - type: Resource
+    resource:
+      name: memory
+      targetAverageUtilization: 60
+
+poddisruptionbudget:
+  enabled: false # if you enable this, make sure your deployment creates atleast minAvailable+1 pods for no downtime deployment
+  minAvailable: 1 
+
+application:
+  enabled: false
+  argocd_namespace: argocd-install-namespace
+  deployment_namespace: default
+  repo_path: infra/kubernetes/charts
+  repoURL: git@github.com:umairedu/onboarding-project.git
+  branch: master
+  environment: production
+  helm:
+    valueFiles:
+      - production/values.yaml
+      - secrets://production/values-enc.yaml

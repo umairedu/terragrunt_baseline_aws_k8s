@@ -1,0 +1,30 @@
+{{ if not .Values.application.enabled }}
+{{- if .Values.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+{{ include "application.labels" . | indent 4 }}
+{{ include "application.labels.chart" . | indent 4 }}
+{{- if .Values.service.additionalLabels }}
+{{ toYaml .Values.service.additionalLabels | indent 4 }}
+{{- end }}
+{{- if .Values.service.annotations }}
+  annotations:
+{{ toYaml .Values.service.annotations | indent 4 }}
+{{- end }}
+  name: {{ template "application.name" . }}
+spec:
+  selector:
+{{ include "application.labels.selector" . | indent 4 }}
+{{- if .Values.deployment.podLabels }}
+{{ toYaml .Values.deployment.podLabels | indent 4 }}
+{{- end }}
+  type: {{ .Values.service.type | default "ClusterIP" }}
+  ports:
+    {{- range $key, $value := .Values.service.ports }}
+    - name: {{ $key }}
+{{ toYaml $value | indent 6 }}
+    {{- end }}
+{{- end }}
+{{- end }}
